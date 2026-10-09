@@ -1,0 +1,6 @@
+-keep class com.ruqaiyapro.** { *; }
+-keepclassmembers class com.ruqaiyapro.** { *; }
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-keepattributes *Annotation*
+-keepattributes Signature
