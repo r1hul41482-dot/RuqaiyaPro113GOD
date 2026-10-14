@@ -5,6 +5,9 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./RuqaiyaPro-113-GOD-FINAL-FIX-FOR-BOSS-RUBEL
 
     steps:
       - uses: actions/checkout@v4
@@ -16,15 +19,9 @@ jobs:
 
       - name: Make gradlew executable
         run: chmod +x gradlew
-        continue-on-error: true
 
       - name: Build Debug APK
-        run: |
-          if [ -f "./gradlew" ]; then
-            ./gradlew assembleDebug --no-daemon
-          else
-            find . -maxdepth 2 -name "gradlew" -execdir ./gradlew assembleDebug --no-daemon \;
-          fi
+        run: ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
