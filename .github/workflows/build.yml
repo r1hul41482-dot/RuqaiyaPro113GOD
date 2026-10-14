@@ -16,11 +16,15 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Gradle
+      - name: Setup Specific Gradle Version
         uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.3'
 
       - name: Build Debug APK
-        run: gradle assembleDebug --no-daemon
+        run: |
+          cd RuqaiyaPro-113-GOD-FINAL-FIX-FOR-BOSS-RUBEL
+          gradle assembleDebug --no-daemon
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
