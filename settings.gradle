@@ -1,16 +1,17 @@
 pluginManagement {
- repositories {
- google()
- mavenCentral()
- gradlePluginPortal()
- }
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
 }
 dependencyResolutionManagement {
- repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
- repositories {
- google()
- mavenCentral()
- }
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+    }
 }
-rootProject.name = "RuqaiyaProGOD"
+rootProject.name = "RuqaiyaPro"
 include ':app'
