@@ -22,9 +22,7 @@ jobs:
           gradle-version: '8.3'
 
       - name: Build Debug APK
-        run: |
-          cd RuqaiyaPro-113-GOD-FINAL-FIX-FOR-BOSS-RUBEL
-          gradle assembleDebug --no-daemon
+        run: gradle assembleDebug --no-daemon
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
