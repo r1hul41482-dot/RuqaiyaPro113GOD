@@ -16,23 +16,13 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Find and Build APK
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build Debug APK
         run: |
-          # Find gradlew file dynamically
-          GRADLEW_PATH=$(find . -maxdepth 3 -name "gradlew" | head -n 1)
-          
-          if [ -z "$GRADLEW_PATH" ]; then
-            echo "Error: gradlew file not found in repository!"
-            exit 1
-          fi
-          
-          echo "Found gradlew at: $GRADLEW_PATH"
-          PROJECT_DIR=$(dirname "$GRADLEW_PATH")
-          
-          chmod +x "$GRADLEW_PATH"
-          
-          cd "$PROJECT_DIR"
-          ./gradlew assembleDebug --no-daemon
+          cd RuqaiyaPro-113-GOD-FINAL-FIX-FOR-BOSS-RUBEL
+          gradle assembleDebug --no-daemon
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
