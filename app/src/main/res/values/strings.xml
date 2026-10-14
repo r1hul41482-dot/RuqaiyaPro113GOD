@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">RuqaiyaPro</string>
+    <string name="boss_name">Boss Rubel</string>
+    <string name="notification_channel_name">Ruqaiya Live Companion</string>
+    <string name="notification_channel_desc">Ruqaiya ghumacche... Bolo Hey Ruqaiya</string>
+    <string name="whatsapp_auto_reply_text">Boss Rubel busy ache, pore reply dibe - Ruqaiya Lobby</string>
+    <string name="self_update_title">Ruqaiya Self-Update Lab</string>
+    <string name="self_update_hint">Bach ki update korbo? Prompt likhun...</string>
+</resources>
