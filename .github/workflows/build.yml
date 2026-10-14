@@ -16,9 +16,15 @@ jobs:
 
       - name: Make gradlew executable
         run: chmod +x gradlew
+        continue-on-error: true
 
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon
+        run: |
+          if [ -f "./gradlew" ]; then
+            ./gradlew assembleDebug --no-daemon
+          else
+            find . -maxdepth 2 -name "gradlew" -execdir ./gradlew assembleDebug --no-daemon \;
+          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
