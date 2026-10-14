@@ -5,9 +5,6 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./RuqaiyaPro-113-GOD-FINAL-FIX-FOR-BOSS-RUBEL
 
     steps:
       - uses: actions/checkout@v4
@@ -18,10 +15,11 @@ jobs:
           java-version: '17'
 
       - name: Make gradlew executable
-        run: chmod +x gradlew
+        run: chmod +x RuqaiyaPro-113-GOD-FINAL-FIX-FOR-BOSS-RUBEL/gradlew
 
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./RuqaiyaPro-113-GOD-FINAL-FIX-FOR-BOSS-RUBEL/gradlew assembleDebug --no-daemon
+        working-directory: .
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
