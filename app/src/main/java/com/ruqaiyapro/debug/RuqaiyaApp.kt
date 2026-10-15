@@ -21,6 +21,8 @@ class RuqaiyaApp : Application() {
     lateinit var database: RuqaiyaDatabase
         private set
 
+    val core: com.ruqaiyapro.debug.core.Core by lazy { com.ruqaiyapro.debug.core.Core(this) }
+
     override fun onCreate() {
         super.onCreate()
         instance = this

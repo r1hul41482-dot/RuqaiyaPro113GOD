@@ -70,6 +70,19 @@ class BrainManager(private val context: Context) {
         prefs.edit().putBoolean("dynamic_ai_features_enabled", enabled).apply()
     }
 
+    fun getModel(p: AIProviderType): String =
+        prefs.getString("model_${p.name}", "")?.takeIf { it.isNotBlank() } ?: p.defaultModel
+
+    fun setModel(p: AIProviderType, model: String) {
+        prefs.edit().putString("model_${p.name}", model.trim()).apply()
+    }
+
+    fun getString(key: String, def: String = ""): String = prefs.getString(key, def) ?: def
+
+    fun putString(key: String, value: String) {
+        prefs.edit().putString(key, value.trim()).apply()
+    }
+
     suspend fun generate(prompt: String, systemPrompt: String? = null): BrainResponse = withContext(Dispatchers.IO) {
         val provider = getSelectedProvider()
         val key = getApiKey(provider)
@@ -87,12 +100,12 @@ class BrainManager(private val context: Context) {
 
         try {
             val responseText = when (provider) {
-                AIProviderType.GEMINI -> callGemini(key, prompt, systemPrompt)
-                AIProviderType.OPENAI -> callOpenAI("https://api.openai.com/v1/chat/completions", key, "gpt-4o", prompt, systemPrompt)
-                AIProviderType.GROQ -> callOpenAI("https://api.groq.com/openai/v1/chat/completions", key, "llama-3.1-70b-versatile", prompt, systemPrompt)
-                AIProviderType.DEEPSEEK -> callOpenAI("https://api.deepseek.com/chat/completions", key, "deepseek-chat", prompt, systemPrompt)
-                AIProviderType.MISTRAL -> callOpenAI("https://api.mistral.ai/v1/chat/completions", key, "mistral-large-latest", prompt, systemPrompt)
-                AIProviderType.CLAUDE -> callClaude(key, prompt, systemPrompt)
+                AIProviderType.GEMINI -> callGemini(key, getModel(provider), prompt, systemPrompt)
+                AIProviderType.OPENAI -> callOpenAI("https://api.openai.com/v1/chat/completions", key, getModel(provider), prompt, systemPrompt)
+                AIProviderType.GROQ -> callOpenAI("https://api.groq.com/openai/v1/chat/completions", key, getModel(provider), prompt, systemPrompt)
+                AIProviderType.DEEPSEEK -> callOpenAI("https://api.deepseek.com/chat/completions", key, getModel(provider), prompt, systemPrompt)
+                AIProviderType.MISTRAL -> callOpenAI("https://api.mistral.ai/v1/chat/completions", key, getModel(provider), prompt, systemPrompt)
+                AIProviderType.CLAUDE -> callClaude(key, getModel(provider), prompt, systemPrompt)
             }
             val latency = System.currentTimeMillis() - startTime
             BrainResponse(success = true, text = responseText, provider = provider, latencyMs = latency)
@@ -102,8 +115,8 @@ class BrainManager(private val context: Context) {
         }
     }
 
-    private fun callGemini(apiKey: String, userPrompt: String, systemPrompt: String?): String {
-        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey"
+    private fun callGemini(apiKey: String, model: String, userPrompt: String, systemPrompt: String?): String {
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
         val json = JSONObject()
         val contents = JSONArray()
         val parts = JSONArray()
@@ -157,9 +170,9 @@ class BrainManager(private val context: Context) {
         }
     }
 
-    private fun callClaude(apiKey: String, userPrompt: String, systemPrompt: String?): String {
+    private fun callClaude(apiKey: String, model: String, userPrompt: String, systemPrompt: String?): String {
         val json = JSONObject().apply {
-            put("model", "claude-3-5-sonnet-20241022")
+            put("model", model)
             put("max_tokens", 2048)
             if (!systemPrompt.isNullOrBlank()) put("system", systemPrompt)
             val messages = JSONArray()

@@ -27,11 +27,16 @@ class FloatingChibiService : Service() {
     private lateinit var scaleDetector: ScaleGestureDetector
     private var currentSize = 90f // default 90dp
 
+    companion object {
+        @Volatile var running = false
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        running = true
         initChibiOverlay()
     }
 
@@ -64,6 +69,7 @@ class FloatingChibiService : Service() {
             val bitmap = loadChibiBitmap()
             if (bitmap != null) {
                 setImageBitmap(bitmap)
+                android.widget.Toast.makeText(context, "Custom Chibi loaded \uD83D\uDE0D", android.widget.Toast.LENGTH_SHORT).show()
             } else {
                 setImageResource(R.mipmap.ic_launcher)
             }
@@ -79,8 +85,11 @@ class FloatingChibiService : Service() {
 
     fun loadChibiBitmap(): Bitmap? {
         val paths = listOf(
+            File(filesDir, "chibi_custom.png").absolutePath,
+            File(getExternalFilesDir(null), "chibi_custom.png").absolutePath,
             File(filesDir, "chibi.png").absolutePath,
             File(getExternalFilesDir(null), "chibi.png").absolutePath,
+            "/sdcard/Download/ruqaiya_chibi.png",
             "/sdcard/Download/chibi_custom.png",
             "/storage/emulated/0/Download/chibi_custom.png",
             "/sdcard/Download/chibi.png"
@@ -90,7 +99,7 @@ class FloatingChibiService : Service() {
             val file = File(path)
             if (file.exists() && file.canRead()) {
                 try {
-                    val bitmap = BitmapFactory.decodeFile(file.absolutePath)
+                    val bitmap = decodeScaled(file.absolutePath)
                     if (bitmap != null) return bitmap
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -98,6 +107,14 @@ class FloatingChibiService : Service() {
             }
         }
         return null
+    }
+
+    private fun decodeScaled(path: String): Bitmap? {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(path, bounds)
+        var sample = 1
+        while (bounds.outWidth / sample > 600 || bounds.outHeight / sample > 600) sample *= 2
+        return BitmapFactory.decodeFile(path, BitmapFactory.Options().apply { inSampleSize = sample })
     }
 
     private fun setupGestures() {
@@ -119,6 +136,11 @@ class FloatingChibiService : Service() {
         var initialX = 0
         var initialY = 0
         var downTime = 0L
+        val longHandler = android.os.Handler(android.os.Looper.getMainLooper())
+        val longRunnable = Runnable {
+            vibrate(50)
+            android.widget.Toast.makeText(this, "Chibi: drag = move, pinch = resize, tap = bounce", android.widget.Toast.LENGTH_SHORT).show()
+        }
 
         chibiView.setOnTouchListener { _, event ->
             scaleDetector.onTouchEvent(event)
@@ -129,9 +151,11 @@ class FloatingChibiService : Service() {
                     initialTouchX = event.rawX
                     initialTouchY = event.rawY
                     downTime = System.currentTimeMillis()
+                    longHandler.postDelayed(longRunnable, 500)
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
+                    if (Math.abs(event.rawX - initialTouchX) > 20 || Math.abs(event.rawY - initialTouchY) > 20) longHandler.removeCallbacks(longRunnable)
                     if (event.pointerCount == 1) {
                         params.x = initialX + (event.rawX - initialTouchX).toInt()
                         params.y = initialY + (event.rawY - initialTouchY).toInt()
@@ -140,6 +164,7 @@ class FloatingChibiService : Service() {
                     true
                 }
                 MotionEvent.ACTION_UP -> {
+                    longHandler.removeCallbacks(longRunnable)
                     // Persist XY
                     getSharedPreferences("ruqaiya_chibi_coords", Context.MODE_PRIVATE).edit()
                         .putInt("chibi_x", params.x)
@@ -184,8 +209,9 @@ class FloatingChibiService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        running = false
         if (::chibiView.isInitialized) {
-            windowManager.removeView(chibiView)
+            try { windowManager.removeView(chibiView) } catch (e: Exception) { e.printStackTrace() }
         }
     }
 }

@@ -5,122 +5,123 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
-import com.ruqaiyapro.debug.brain.BrainManager
-import com.ruqaiyapro.debug.feedback.FeedbackManager
-import com.ruqaiyapro.debug.features.Features113Manager
-import com.ruqaiyapro.debug.selfupdate.SelfUpdateEngine
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.ruqaiyapro.debug.core.Core
+import com.ruqaiyapro.debug.ui.*
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
-
-    private lateinit var brainManager: BrainManager
-    private lateinit var feedbackManager: FeedbackManager
-    private lateinit var featuresManager: Features113Manager
-    private lateinit var selfUpdateEngine: SelfUpdateEngine
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        brainManager = BrainManager(this)
-        feedbackManager = FeedbackManager(this)
-        featuresManager = Features113Manager(this)
-        selfUpdateEngine = SelfUpdateEngine(this, brainManager, feedbackManager)
-
+        val core = (application as RuqaiyaApp).core
         setContent {
-            RuqaiyaTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = Color.Black
+            RuqaiyaTheme { RuqaiyaRoot(core, this) }
+        }
+    }
+}
+
+private data class TabDef(val title: String, val icon: ImageVector)
+
+@Composable
+fun RuqaiyaRoot(core: Core, activity: ComponentActivity) {
+    val tabs = remember {
+        listOf(
+            TabDef("Hub", Icons.Filled.Home),
+            TabDef("Face", Icons.Filled.Face),
+            TabDef("Control", Icons.Filled.Tune),
+            TabDef("107", Icons.Filled.Apps),
+            TabDef("Activity", Icons.Filled.History),
+            TabDef("Update", Icons.Filled.SystemUpdate),
+            TabDef("Settings", Icons.Filled.Settings)
+        )
+    }
+    var selected by remember { mutableIntStateOf(0) }
+
+    // Screen brightness (also drives the 1% Ultra Saver)
+    LaunchedEffect(Unit) {
+        snapshotFlow { if (core.ultraSaver) 0.01f else core.brightness }.collect { b ->
+            try {
+                val lp = activity.window.attributes
+                lp.screenBrightness = b
+                activity.window.attributes = lp
+            } catch (e: Exception) { }
+        }
+    }
+
+    // RAM check every 15 s (60 s in Ultra Saver)
+    LaunchedEffect(Unit) {
+        var warned = false
+        while (true) {
+            val (free, total) = core.device.ramInfo()
+            core.freeRamMb = free
+            core.totalRamMb = total
+            if (free < 500 && !warned) {
+                core.logHud("Low RAM: ${free}MB free")
+                System.gc()
+                warned = true
+            } else if (free >= 500) warned = false
+            delay(if (core.ultraSaver) 60_000L else 15_000L)
+        }
+    }
+
+    Scaffold(
+        containerColor = RC.Black,
+        topBar = {
+            Surface(color = Color(0xFF0A0A0A)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RuqaiyaMainScreen(
-                        brainManager = brainManager,
-                        feedbackManager = feedbackManager,
-                        featuresManager = featuresManager,
-                        selfUpdateEngine = selfUpdateEngine
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Ruqaiya", color = RC.Green, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        Text("Boss ${core.ownerName}'s companion", color = RC.TextSec, fontSize = 11.sp)
+                    }
+                    StatusPill(if (core.brain.isBrainActive()) "BRAIN ON" else "BRAIN OFF",
+                        if (core.brain.isBrainActive()) RC.Green else RC.Amber)
+                }
+            }
+        },
+        bottomBar = {
+            NavigationBar(containerColor = Color(0xFF0A0A0A), tonalElevation = 0.dp) {
+                tabs.forEachIndexed { i, t ->
+                    NavigationBarItem(
+                        selected = selected == i,
+                        onClick = { selected = i },
+                        icon = { Icon(t.icon, contentDescription = t.title, modifier = Modifier.size(20.dp)) },
+                        label = { Text(t.title, fontSize = 9.sp, maxLines = 1) },
+                        alwaysShowLabel = true,
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = Color.Black,
+                            selectedTextColor = RC.Green,
+                            indicatorColor = RC.Green,
+                            unselectedIconColor = RC.TextSec,
+                            unselectedTextColor = RC.TextSec
+                        )
                     )
                 }
             }
         }
-    }
-}
-
-@Composable
-fun RuqaiyaTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = darkColorScheme(
-            primary = Color(0xFF00E676),
-            background = Color.Black,
-            surface = Color(0xFF141414)
-        ),
-        content = content
-    )
-}
-
-@Composable
-fun RuqaiyaMainScreen(
-    brainManager: BrainManager,
-    feedbackManager: FeedbackManager,
-    featuresManager: Features113Manager,
-    selfUpdateEngine: SelfUpdateEngine
-) {
-    var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("Hub", "Face", "Control", "107", "Activity", "Self-Update", "Settings")
-
-    Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        // Top Bar
-        Surface(
-            color = Color(0xFF0A0A0A),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "RuqaiyaPro FOR BOSS RUBEL",
-                    color = Color(0xFF00E676),
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = "Infinix HOT 12 Play X6816C | API 30 | 4GB+3GB MemFusion",
-                    color = Color(0xFF8E8E93),
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-        }
-
-        // Tab Content
-        Box(modifier = Modifier.weight(1f)) {
-            when (selectedTab) {
-                0 -> HubTabContent()
-                1 -> FaceTabContent()
-                2 -> ControlTabContent()
-                3 -> FeaturesTabContent(featuresManager)
-                4 -> ActivityTabContent()
-                5 -> SelfUpdateTabContent(selfUpdateEngine)
-                6 -> SettingsTabContent(brainManager, feedbackManager)
-            }
-        }
-
-        // Bottom Navigation Bar
-        NavigationBar(containerColor = Color(0xFF0A0A0A)) {
-            tabs.forEachIndexed { index, title ->
-                NavigationBarItem(
-                    selected = selectedTab == index,
-                    onClick = { selectedTab = index },
-                    label = { Text(title, color = if (selectedTab == index) Color(0xFF00E676) else Color.Gray) },
-                    icon = { }
-                )
+    ) { pad ->
+        Box(modifier = Modifier.padding(pad).fillMaxSize().background(RC.Black)) {
+            when (selected) {
+                0 -> HubScreen(core)
+                1 -> FaceScreen(core, activity)
+                2 -> ControlScreen(core)
+                3 -> FeaturesScreen()
+                4 -> ActivityScreen()
+                5 -> SelfUpdateScreen(core)
+                else -> SettingsScreen(core)
             }
         }
     }
 }
-
-@Composable fun HubTabContent() { Text("Hub Tab Content", color = Color.White) }
-@Composable fun FaceTabContent() { Text("Face Tab Content", color = Color.White) }
-@Composable fun ControlTabContent() { Text("Control Tab Content", color = Color.White) }
-@Composable fun FeaturesTabContent(manager: Features113Manager) { Text("107 Features Tab", color = Color.White) }
-@Composable fun ActivityTabContent() { Text("Activity Feed (RecyclerView)", color = Color.White) }
-@Composable fun SelfUpdateTabContent(engine: SelfUpdateEngine) { Text("Self-Update Engine Tab", color = Color.White) }
-@Composable fun SettingsTabContent(brain: BrainManager, fb: FeedbackManager) { Text("Universal Brain Settings", color = Color.White) }

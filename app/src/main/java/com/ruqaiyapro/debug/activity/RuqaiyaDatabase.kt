@@ -41,10 +41,23 @@ interface FeedbackDao {
     suspend fun getDislikedPrompts(): List<FeedbackEntity>
 }
 
-@Database(entities = [ActivityLogEntity::class, FeedbackEntity::class], version = 1, exportSchema = false)
+@Dao
+interface KhataDao {
+    @Insert
+    suspend fun insert(entry: KhataEntity): Long
+
+    @Query("SELECT * FROM khata ORDER BY timestamp DESC")
+    fun all(): Flow<List<KhataEntity>>
+
+    @Query("DELETE FROM khata WHERE id = :id")
+    suspend fun delete(id: Long)
+}
+
+@Database(entities = [ActivityLogEntity::class, FeedbackEntity::class, KhataEntity::class], version = 2, exportSchema = false)
 abstract class RuqaiyaDatabase : RoomDatabase() {
     abstract fun activityDao(): ActivityDao
     abstract fun feedbackDao(): FeedbackDao
+    abstract fun khataDao(): KhataDao
 
     companion object {
         @Volatile
