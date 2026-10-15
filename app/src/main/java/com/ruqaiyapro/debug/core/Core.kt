@@ -1,5 +1,7 @@
 package com.ruqaiyapro.debug.core
 
+import kotlin.jvm.JvmName
+
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Handler
