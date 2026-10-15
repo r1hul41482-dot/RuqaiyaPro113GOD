@@ -32,7 +32,9 @@ jobs:
       - name: Show errors only
         if: failure()
         run: |
-          grep -nE "^e: |What went wrong|error:|Execution failed|Could not" -A3 build.log | head -60
+          echo "---- LAST 40 LINES ----"
+          tail -n 40 build.log
+          grep -E "^e: |error:|What went wrong" -A2 build.log | head -40 | while IFS= read -r l; do echo "::error::$l"; done
 
       - uses: actions/upload-artifact@v4
         with:
